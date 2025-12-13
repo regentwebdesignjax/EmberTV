@@ -1,10 +1,12 @@
 {
   "images" : [
     {
+      "filename" : "ember-top-shelf-image-wide.png",
       "idiom" : "tv",
       "scale" : "1x"
     },
     {
+      "filename" : "ember-top-shelf-image-wide-2x.png",
       "idiom" : "tv",
       "scale" : "2x"
     }

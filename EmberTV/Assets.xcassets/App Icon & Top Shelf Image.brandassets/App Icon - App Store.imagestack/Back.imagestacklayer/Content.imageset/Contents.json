@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "ember-tvos-app.png",
       "idiom" : "tv"
     }
   ],
