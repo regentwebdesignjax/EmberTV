@@ -8,6 +8,24 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
+    enum LoginField: Hashable {
+        case email
+        case password
+    }
+
+    @FocusState private var focusedField: LoginField?
+
+    // MARK: - Computed colors (keeps text readable + visible)
+    private var emailTextColor: Color {
+        if focusedField == .email { return .white }
+        return email.isEmpty ? .white : EmberTheme.primary
+    }
+
+    private var passwordTextColor: Color {
+        if focusedField == .password { return .white }
+        return password.isEmpty ? .white : EmberTheme.primary
+    }
+
     var body: some View {
         ZStack {
             EmberTheme.background
@@ -17,13 +35,11 @@ struct LoginView: View {
                 Spacer()
 
                 VStack(spacing: 40) {
-                    // Logo
                     Image("ember-tv-logo")
                         .resizable()
                         .scaledToFit()
                         .frame(height: 80)
 
-                    // Title + subtitle
                     VStack(spacing: 12) {
                         Text("Sign in to EmberTV")
                             .font(EmberTheme.titleFont(44))
@@ -36,7 +52,6 @@ struct LoginView: View {
                             .frame(maxWidth: 900)
                     }
 
-                    // Form card
                     VStack(spacing: 24) {
 
                         // Email
@@ -48,20 +63,38 @@ struct LoginView: View {
                             TextField("name@example.com", text: $email)
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
                                 .font(EmberTheme.bodyFont(22))
+                                .textFieldStyle(.plain)                 // IMPORTANT on tvOS
+                                .foregroundStyle(emailTextColor)        // IMPORTANT on tvOS
+                                .tint(EmberTheme.primary)               // cursor / selection color
+                                .submitLabel(.done)
+                                .focused($focusedField, equals: .email)
+                                .onSubmit { focusedField = .password }  // go to next field
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 14)
-                                .foregroundColor(.white)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .fill(Color.white.opacity(0.06))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(EmberTheme.primary.opacity(0.9), lineWidth: 2)
+                                        .stroke(
+                                            focusedField == .email
+                                                ? EmberTheme.primary.opacity(0.95)
+                                                : Color.white.opacity(0.18),
+                                            lineWidth: focusedField == .email ? 3 : 1
+                                        )
+                                        .shadow(
+                                            color: focusedField == .email
+                                                ? EmberTheme.primary.opacity(0.70)
+                                                : .clear,
+                                            radius: focusedField == .email ? 18 : 0,
+                                            x: 0, y: 0
+                                        )
                                 )
+                                .focusEffectDisabled(true)
                         }
 
                         // Password
@@ -73,20 +106,37 @@ struct LoginView: View {
                             SecureField("Password", text: $password)
                                 .textContentType(.password)
                                 .font(EmberTheme.bodyFont(22))
+                                .textFieldStyle(.plain)                   // IMPORTANT on tvOS
+                                .foregroundStyle(passwordTextColor)       // IMPORTANT on tvOS
+                                .tint(EmberTheme.primary)
+                                .submitLabel(.done)
+                                .focused($focusedField, equals: .password)
+                                .onSubmit { focusedField = nil }          // close keyboard
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 14)
-                                .foregroundColor(.white)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .fill(Color.white.opacity(0.06))
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(EmberTheme.primary.opacity(0.9), lineWidth: 2)
+                                        .stroke(
+                                            focusedField == .password
+                                                ? EmberTheme.primary.opacity(0.95)
+                                                : Color.white.opacity(0.18),
+                                            lineWidth: focusedField == .password ? 3 : 1
+                                        )
+                                        .shadow(
+                                            color: focusedField == .password
+                                                ? EmberTheme.primary.opacity(0.70)
+                                                : .clear,
+                                            radius: focusedField == .password ? 18 : 0,
+                                            x: 0, y: 0
+                                        )
                                 )
+                                .focusEffectDisabled(true)
                         }
 
-                        // Error message
                         if let errorMessage {
                             Text(errorMessage)
                                 .font(EmberTheme.bodyFont(20))
@@ -95,7 +145,6 @@ struct LoginView: View {
                                 .frame(maxWidth: 700)
                         }
 
-                        // Sign In button
                         Button {
                             Task { await login() }
                         } label: {
@@ -111,7 +160,6 @@ struct LoginView: View {
                             }
                         }
                         .buttonStyle(EmberLoginPrimaryButtonStyle())
-                        // IMPORTANT: no .disabled based on fields so we can prove the call works
                         .disabled(isLoading)
                     }
                     .padding(.horizontal, 40)
@@ -127,9 +175,10 @@ struct LoginView: View {
             }
             .padding(.horizontal, 80)
         }
+        .onAppear {
+            focusedField = .email
+        }
     }
-
-    // MARK: - Actions
 
     private func login() async {
         print("LoginView → Sign In tapped for email: \(email)")
@@ -144,7 +193,6 @@ struct LoginView: View {
 
         do {
             try await api.login(email: email, password: password)
-            // EmberTVApp watches api.token and will switch to MyRentalsView on success.
         } catch {
             print("LoginView → login error: \(error)")
             errorMessage = "Sign-in failed. Please check your email and password."
